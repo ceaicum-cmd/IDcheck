@@ -1,14 +1,14 @@
 [project]
-name = "evls-true-lock-pipeline"
+name = "body-measurement-pipeline"
 version = "2.2.0"
-description = "Complete TrueLock Pipeline for consistent AI character generation (Alexandra Marchis). Includes landmark extraction, 3D visual analysis, and strict consistency enforcement."
+description = "Standalone pipeline for 3D body landmark extraction, visual analysis, and body proportion measurement from any image. Supports front and side profiles."
 authors = [
-    { name = "Gabarit", email = "gabarit@evls.dev" }
+    { name = "Gabarit" }
 ]
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
-keywords = ["TrueLock", "MediaPipe", "3D Analysis", "Character Consistency", "AI Image Pipeline"]
+keywords = ["3D Body Analysis", "MediaPipe", "Landmarks", "Body Proportions", "Computer Vision"]
 
 dependencies = [
     "mediapipe>=0.10.35",
@@ -46,7 +46,3 @@ python_version = "3.9"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
-
-[project.urls]
-Homepage = "https://evls.dev"
-Repository = "https://github.com/ceaicum-cmd/IDcheck"
