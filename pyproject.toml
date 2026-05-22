@@ -1,0 +1,52 @@
+[project]
+name = "evls-true-lock-pipeline"
+version = "2.2.0"
+description = "Complete TrueLock Pipeline for consistent AI character generation (Alexandra Marchis). Includes landmark extraction, 3D visual analysis, and strict consistency enforcement."
+authors = [
+    { name = "Gabarit", email = "gabarit@evls.dev" }
+]
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+keywords = ["TrueLock", "MediaPipe", "3D Analysis", "Character Consistency", "AI Image Pipeline"]
+
+dependencies = [
+    "mediapipe>=0.10.35",
+    "opencv-python-headless>=4.8.0",
+    "numpy>=1.24.0",
+    "Pillow>=10.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black>=24.0.0",
+    "ruff>=0.4.0",
+    "pytest>=8.0.0",
+    "mypy>=1.10.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["landmark-provider*", "vision-analyzer-v6*", "truelock*"]
+
+[tool.setuptools.package-dir]
+"" = "."
+
+[tool.black]
+line-length = 100
+target-version = ["py39", "py310", "py311", "py312"]
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "B", "I", "UP"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[project.urls]
+Homepage = "https://evls.dev"
+Repository = "https://github.com/ceaicum-cmd/IDcheck"
