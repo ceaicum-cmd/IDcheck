@@ -1,20 +1,26 @@
-# EVLS TrueLock Pipeline v2.2
+# Body Measurement & Analysis Pipeline
 
-Complete pipeline for consistent AI character generation using **TrueLock** methodology.
+A standalone pipeline for extracting 3D body landmarks, performing detailed visual analysis, and measuring proportions from any image containing human bodies.
 
 ## Overview
 
-This project provides a robust system for extracting 3D landmarks, performing visual analysis, and enforcing strict character consistency across image generations.
+This project provides tools to:
 
-**Main Character:** Alexandra Marchis (Petite Hourglass - Bottom-Heavy)
+- Extract precise 3D body landmarks using MediaPipe
+- Calculate real-world measurements in centimeters (with height-based scaling)
+- Analyze body proportions (WHR, shoulder-to-hip, leg-to-torso, etc.)
+- Detect facial landmarks and emotional expressions when a face is visible
+- Support side-profile images with enhanced detection modes
+
+It is designed to be **character-agnostic** and can be used on any photo of a person.
 
 ## Skills Included
 
-| Skill                  | Purpose                                      | Key Features |
-|------------------------|----------------------------------------------|--------------|
-| `landmark-provider`    | MediaPipe landmark extraction                | Face + Pose World Landmarks (3D meters), profile mode support |
-| `vision-analyzer-v6`   | 3D visual analysis & metrics                 | Body proportions, sizes in cm, IPD, emotional state detection |
-| `truelock`             | Consistency enforcement                      | Deviation scoring, TrueLock validation |
+| Skill                  | Purpose                                           | Key Features |
+|------------------------|---------------------------------------------------|--------------|
+| `landmark-provider`    | MediaPipe landmark extraction                     | Pose World Landmarks (3D), Face landmarks, Profile mode |
+| `vision-analyzer-v6`   | 3D body & face analysis                           | Measurements in cm, proportions, IPD, emotional state |
+| `truelock`             | Optional consistency checking                     | Deviation scoring (can be used or ignored) |
 
 ## Quick Start
 
@@ -24,19 +30,49 @@ This project provides a robust system for extracting 3D landmarks, performing vi
 pip install -e .
 ```
 
-Or install dependencies manually:
+Or:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Key Features
+### Basic Usage
 
-- Real 3D coordinates from MediaPipe World Landmarks
+```python
+from landmark_provider.scripts.landmark_provider import extract_landmarks
+from vision_analyzer_v6.scripts.vision_analyzer_v6 import VisionAnalyzerV6
+
+# Extract landmarks (supports side profiles)
+data = extract_landmarks("your_image.jpg", profile_mode=True)
+
+# Full analysis
+analyzer = VisionAnalyzerV6()
+result = analyzer.get_full_visual_analysis("your_image.jpg")
+
+print(result.body_geometry_canonical)
+print(result.proportions)
+```
+
+## Features
+
+- Real 3D world landmarks from MediaPipe
 - Height-based scaling for accurate cm measurements
-- Facial expression & emotional state detection
-- Side-profile face detection support
-- Strict TrueLock consistency enforcement
+- Body proportion analysis (WHR, ratios, etc.)
+- Facial metrics when available (IPD, symmetry, expressions)
+- Emotional state detection from facial blendshapes
+- Works on front and side profile images
+
+## Project Structure
+
+```
+.
+├── pyproject.toml
+├── requirements.txt
+├── README.md
+├── landmark-provider/
+├── vision-analyzer-v6/
+└── truelock/
+```
 
 ## License
 
