@@ -1,0 +1,22 @@
+{
+  "location": null,
+  "active_house": null,
+  "dominant_character": null,
+  "dominant_archetype": null,
+  "user_role": null,
+  "rank_level": 0,
+  "rank_label": "Unseen",
+  "scene_intensity": 1,
+  "active_rule": null,
+  "current_tension": null,
+  "last_power_shift": null,
+  "symbolic_objects": [],
+  "open_threads": [],
+  "consequences_pending": [],
+  "humiliation_exposure": 0,
+  "elite_attention": 0,
+  "reputation_stability": 50,
+  "social_debt": 0,
+  "house_protection": null,
+  "boundary_mode": "no_explicit_nc_sexual_content"
+}
