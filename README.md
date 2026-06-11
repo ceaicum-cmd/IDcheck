@@ -10,7 +10,7 @@ A generalized, character-agnostic pipeline for extracting MediaPipe face/body la
 - The pipeline produces a structured `curve_metrics_33` dictionary plus the requested four-table Markdown report.
 - If MediaPipe world landmarks are unavailable, the analyzer now falls back to height-calibrated 2D pose landmarks instead of dropping to generic defaults.
 - Landmark extraction is fully input-driven: there are no hardcoded character profiles.
-- The CLI can emit Markdown or JSON and supports side/profile images.
+- The CLI can emit Markdown or JSON, supports side/profile images, and recognizes `@codex adv` / `--adv` for high-recall advanced analysis.
 
 ## Installation
 
@@ -56,6 +56,30 @@ JSON payload:
 ```bash
 python pipeline.py new_character.jpg --height 168 --name "New Character" --json --output analysis.json
 ```
+
+
+## `@codex adv` advanced mode
+
+Use the `@codex adv` preset when you want the highest-recall generalized analysis path for difficult inputs, side/profile poses, lower-contrast images, or production validation runs:
+
+```bash
+python pipeline.py new_character.jpg --height 168 --name "New Character" --preset "@codex adv"
+# equivalent shortcut
+python pipeline.py new_character.jpg --height 168 --name "New Character" --adv
+```
+
+In Python:
+
+```python
+result = analyze_image(
+    "new_character.jpg",
+    real_height_cm=168,
+    character_name="New Character",
+    analysis_preset="@codex adv",
+)
+```
+
+Advanced mode enables profile-aware low-threshold landmark recall, segmentation-backed validation, and an expanded `validation.quality_audit` block with metric confidence, scale source, pose visibility, mask ratio, and review flags.
 
 ## Model configuration
 

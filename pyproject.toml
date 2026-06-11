@@ -49,7 +49,7 @@ exclude = ["landmark-provider", "vision-analyzer-v6", "utils"]
 
 [tool.ruff.lint]
 select = ["E", "F", "B", "I", "UP"]
-ignore = ["E501", "UP006", "UP035", "UP045"]
+ignore = ["E501", "UP006", "UP007", "UP035", "UP045"]
 
 [tool.mypy]
 python_version = "3.9"

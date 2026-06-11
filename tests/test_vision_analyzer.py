@@ -70,3 +70,35 @@ def test_landmark_confidence_and_runtime_error_message():
     error = _runtime_dependency_error(OSError("libGLESv2.so.2: cannot open shared object file"))
     assert "libGLESv2.so.2" in str(error)
     assert "libgles2" in str(error)
+
+
+def test_codex_adv_preset_enables_high_recall_quality_audit():
+    analyzer = VisionAnalyzerV6(real_height_cm=171, analysis_preset="@codex adv")
+    body = analyzer.analyze_body_proportions(
+        [],
+        image_landmarks=_synthetic_pose_2d(),
+        image_meta={"width_px": 1000, "height_px": 1800},
+    )
+    metrics = analyzer.build_33_curve_metrics(body)
+    audit = analyzer.build_quality_audit(
+        {
+            "pose": {"detected": True, "landmarks": _synthetic_pose_2d(), "world_landmarks": []},
+            "segmentation": {"person_ratio": 0.42},
+            "min_detection_confidence": 0.2,
+        },
+        body,
+        metrics,
+    )
+
+    assert analyzer.profile_mode is True
+    assert analyzer.min_detection_confidence == 0.20
+    assert audit["analysis_preset"] == "advanced"
+    assert audit["metric_confidence"] > 0.7
+    assert "world_landmarks_unavailable" in audit["review_flags"]
+
+
+def test_cli_codex_adv_prefix_normalizes_to_advanced_flag():
+    from pipeline import _normalize_codex_adv_args
+
+    assert _normalize_codex_adv_args(["@codex", "adv", "image.jpg"]) == ["--adv", "image.jpg"]
+    assert _normalize_codex_adv_args(["@codex adv", "image.jpg"]) == ["--adv", "image.jpg"]

@@ -7,11 +7,12 @@ import math
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 
 from landmark_provider.scripts.landmark_provider import extract_landmarks
+from vision_analyzer_v6.scripts.presets import AnalysisPreset, resolve_preset
 
 Point = Dict[str, float]
 
@@ -42,13 +43,19 @@ class VisionAnalyzerV6:
         use_gpu: bool = False,
         profile_mode: bool = False,
         enable_segmentation: bool = True,
+        analysis_preset: Optional[Union[AnalysisPreset, str]] = None,
+        min_detection_confidence: Optional[float] = None,
     ) -> None:
+        preset = resolve_preset(analysis_preset)
         self.canonical = self._load_canonical(canonical_state_path)
         self.real_height_cm = real_height_cm
         self.use_gpu = use_gpu
-        self.profile_mode = profile_mode
-        self.enable_segmentation = enable_segmentation
-        self.version = "6.12-generalized"
+        self.profile_mode = bool(profile_mode or preset.profile_mode)
+        self.enable_segmentation = bool(enable_segmentation and preset.enable_segmentation)
+        self.min_detection_confidence = min_detection_confidence if min_detection_confidence is not None else preset.min_detection_confidence
+        self.quality_audit_enabled = preset.quality_audit
+        self.analysis_preset = preset
+        self.version = "6.13-advanced-preset"
 
     def _load_canonical(self, path: str) -> Dict[str, Any]:
         candidate = Path(path)
@@ -377,6 +384,45 @@ class VisionAnalyzerV6:
             return "straight athletic"
         return "balanced proportional"
 
+    def build_quality_audit(self, data: Dict[str, Any], body_data: Dict[str, Any], metrics: Dict[str, Any]) -> Dict[str, Any]:
+        """Create deterministic quality metadata for downstream automation and review."""
+
+        pose = data.get("pose", {})
+        landmarks = pose.get("landmarks", []) or []
+        visibility_values = [float(point.get("visibility", 1.0)) for point in landmarks[:33]]
+        avg_visibility = sum(visibility_values) / len(visibility_values) if visibility_values else 0.0
+        segmentation = data.get("segmentation", {}) or {}
+        person_ratio = float(segmentation.get("person_ratio", 0.0) or 0.0)
+        has_world = bool(pose.get("world_landmarks"))
+        scale_source = body_data.get("scale_source") or "fallback_defaults"
+        metric_confidence = 0.35
+        metric_confidence += 0.30 if pose.get("detected") else 0.0
+        metric_confidence += 0.15 if has_world else 0.06 if scale_source == "height_calibrated_2d" else 0.0
+        metric_confidence += min(avg_visibility, 1.0) * 0.12
+        metric_confidence += min(person_ratio / 0.45, 1.0) * 0.08 if person_ratio else 0.0
+        metric_confidence = round(min(metric_confidence, 0.98), 3)
+        review_flags = []
+        if not pose.get("detected"):
+            review_flags.append("pose_not_detected")
+        if not has_world:
+            review_flags.append("world_landmarks_unavailable")
+        if avg_visibility and avg_visibility < 0.65:
+            review_flags.append("low_pose_visibility")
+        if person_ratio and person_ratio < 0.18:
+            review_flags.append("small_subject_in_frame")
+        if metrics.get("waist_to_hip_ratio", 1.0) <= 0 or metrics.get("full_hip_circumference_cm", 0.0) <= 0:
+            review_flags.append("invalid_curve_metric")
+        return {
+            "analysis_preset": self.analysis_preset.name,
+            "preset_description": self.analysis_preset.description,
+            "min_detection_confidence": data.get("min_detection_confidence", self.min_detection_confidence),
+            "scale_source": scale_source,
+            "average_pose_visibility": round(avg_visibility, 3),
+            "person_mask_ratio": round(person_ratio, 4) if person_ratio else None,
+            "metric_confidence": metric_confidence,
+            "review_flags": review_flags,
+        }
+
     def build_body_dna(self, metrics: Dict[str, Any]) -> Dict[str, Any]:
         return {
             "shape_family": metrics.get("body_shape"),
@@ -492,6 +538,7 @@ class VisionAnalyzerV6:
             use_gpu=self.use_gpu,
             profile_mode=self.profile_mode,
             enable_segmentation=self.enable_segmentation,
+            min_detection_confidence=self.min_detection_confidence,
         )
         face = data.get("face", {})
         pose = data.get("pose", {})
@@ -503,6 +550,7 @@ class VisionAnalyzerV6:
         ) if pose.get("detected") else {"measurements": {}, "proportions": {}, "angles": {}, "error": "pose_not_detected"}
         curve_metrics = self.build_33_curve_metrics(body_data)
         body_dna = self.build_body_dna(curve_metrics)
+        quality_audit = self.build_quality_audit(data, body_data, curve_metrics) if self.quality_audit_enabled else {}
         markdown = self.render_33_metric_report(character_name, curve_metrics, body_dna)
         detected = bool(face.get("detected")) + bool(pose.get("detected"))
         return FullVisualAnalysis(
@@ -527,6 +575,7 @@ class VisionAnalyzerV6:
                 "profile_mode_used": data.get("profile_mode_used"),
                 "inference_device": data.get("inference_device"),
                 "body_scale_source": body_data.get("scale_source"),
+                "quality_audit": quality_audit,
                 "landmark_quality": {
                     "face_detected": bool(face.get("detected")),
                     "pose_detected": bool(pose.get("detected")),
