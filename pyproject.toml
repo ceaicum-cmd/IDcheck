@@ -1,7 +1,7 @@
 [project]
 name = "body-measurement-pipeline"
-version = "2.2.0"
-description = "Standalone pipeline for 3D body landmark extraction, visual analysis, and body proportion measurement from any image. Supports front and side profiles."
+version = "2.3.0"
+description = "Generalized 3D body landmark extraction, centimeter calibration, and 33-metric body proportion reporting from arbitrary character images."
 authors = [
     { name = "Gabarit" }
 ]
@@ -12,7 +12,7 @@ keywords = ["3D Body Analysis", "MediaPipe", "Landmarks", "Body Proportions", "C
 
 dependencies = [
     "mediapipe>=0.10.35",
-    "opencv-python-headless>=4.8.0",
+    "opencv-contrib-python-headless>=4.8.0",
     "numpy>=1.24.0",
     "Pillow>=10.0.0",
 ]
@@ -25,9 +25,16 @@ dev = [
     "mypy>=1.10.0",
 ]
 
+[project.scripts]
+body-measure = "pipeline:main"
+
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["landmark-provider*", "vision-analyzer-v6*", "truelock*"]
+include = ["landmark_provider*", "vision_analyzer_v6*", "truelock*", "utils*"]
+exclude = ["landmark-provider*", "vision-analyzer-v6*"]
+
+[tool.setuptools.package-data]
+landmark_provider = ["models/*.task"]
 
 [tool.setuptools.package-dir]
 "" = "."
@@ -38,8 +45,11 @@ target-version = ["py39", "py310", "py311", "py312"]
 
 [tool.ruff]
 line-length = 100
+exclude = ["landmark-provider", "vision-analyzer-v6", "utils"]
+
+[tool.ruff.lint]
 select = ["E", "F", "B", "I", "UP"]
-ignore = ["E501"]
+ignore = ["E501", "UP006", "UP035", "UP045"]
 
 [tool.mypy]
 python_version = "3.9"

@@ -1,93 +1,100 @@
 # Body Measurement & Analysis Pipeline
 
-A standalone pipeline for extracting 3D body landmarks, performing detailed visual analysis, and measuring proportions from any image containing human bodies.
+A generalized, character-agnostic pipeline for extracting MediaPipe face/body landmarks, calibrating body measurements in centimeters, and generating a production-ready 33-metric proportion report for any new visible person/character image.
 
-## Overview
+## What changed in the generalized version
 
-This project provides tools to:
+- Valid Python packages now use importable underscore names: `landmark_provider` and `vision_analyzer_v6`.
+- The MediaPipe `.task` models from `mk2-metricforge-portable.zip` are bundled under `landmark_provider/models/` and can also be overridden with environment variables.
+- `VisionAnalyzerV6(real_height_cm=...)` is wired correctly for height-based centimeter calibration.
+- The pipeline produces a structured `curve_metrics_33` dictionary plus the requested four-table Markdown report.
+- If MediaPipe world landmarks are unavailable, the analyzer now falls back to height-calibrated 2D pose landmarks instead of dropping to generic defaults.
+- Landmark extraction is fully input-driven: there are no hardcoded character profiles.
+- The CLI can emit Markdown or JSON and supports side/profile images.
 
-- Extract precise 3D body landmarks using MediaPipe
-- Calculate real-world measurements in centimeters (with height-based scaling)
-- Analyze body proportions (WHR, shoulder-to-hip, leg-to-torso, etc.)
-- Detect facial landmarks and emotional expressions when a face is visible
-- Support side-profile images with enhanced detection modes
-- Run custom TensorFlow Lite models directly
-
-It is designed to be **character-agnostic** and can be used on any photo of a person.
-
-## Skills Included
-
-| Skill                  | Purpose                                           | Key Features |
-|------------------------|---------------------------------------------------|--------------|
-| `landmark-provider`    | MediaPipe landmark extraction                     | Pose World Landmarks (3D), Face landmarks, Profile mode, Hand support |
-| `vision-analyzer-v6`   | 3D body & face analysis                           | Measurements in cm, proportions, IPD, emotional state |
-| `truelock`             | Optional consistency checking                     | Deviation scoring (can be used or ignored) |
-
-## Quick Start
-
-### Installation
+## Installation
 
 ```bash
 pip install -e .
 ```
 
-Or:
+If your environment has OpenCV GUI conflicts, reinstall the headless wheel:
 
 ```bash
-pip install -r requirements.txt
+pip uninstall -y opencv-python opencv-contrib-python
+pip install -U opencv-contrib-python-headless opencv-python-headless
 ```
 
-### Basic Usage
+MediaPipe Tasks may also require system OpenGL ES runtime libraries such as `libGLESv2.so.2` on minimal Linux containers. Install the OS package that provides those libraries before running image inference.
+
+## Python usage
 
 ```python
-from landmark_provider.scripts.landmark_provider import extract_landmarks
-from vision_analyzer_v6.scripts.vision_analyzer_v6 import VisionAnalyzerV6
+from pipeline import analyze_image
 
-# Extract landmarks (supports side profiles)
-data = extract_landmarks("your_image.jpg", profile_mode=True)
+result = analyze_image(
+    "new_character.jpg",
+    real_height_cm=168,
+    character_name="New Character",
+    profile_mode=True,
+)
 
-# Full analysis
-analyzer = VisionAnalyzerV6()
-result = analyzer.get_full_visual_analysis("your_image.jpg")
-
-print(result.body_geometry_canonical)
-print(result.proportions)
+print(result.curve_metrics_33)
+print(result.markdown_report)
 ```
 
-## TensorFlow Lite Support
+## CLI usage
 
-The project includes a utility module for running custom TFLite models:
+Markdown report:
 
-```python
-from utils.tflite_utils import TFLiteModel
-
-model = TFLiteModel("path/to/your/model.tflite")
-output = model.predict(input_data)
+```bash
+python pipeline.py new_character.jpg --height 168 --name "New Character" --profile-mode
 ```
 
-## Features
+JSON payload:
 
-- Real 3D world landmarks from MediaPipe
-- Height-based scaling for accurate cm measurements
-- Body proportion analysis (WHR, ratios, etc.)
-- Facial metrics when available (IPD, symmetry, expressions)
-- Emotional state detection from facial blendshapes
-- Direct TensorFlow Lite inference support
-- Works on front and side profile images
-
-## Project Structure
-
-```
-.
-├── pyproject.toml
-├── requirements.txt
-├── README.md
-├── utils/
-├── landmark-provider/
-├── vision-analyzer-v6/
-└── truelock/
+```bash
+python pipeline.py new_character.jpg --height 168 --name "New Character" --json --output analysis.json
 ```
 
-## License
+## Model configuration
 
-MIT
+By default, the repository uses bundled models:
+
+- `landmark_provider/models/face_landmarker.task`
+- `landmark_provider/models/pose_landmarker_full.task`
+
+Override them when needed:
+
+```bash
+export FACE_LANDMARKER_MODEL=/path/to/face_landmarker.task
+export POSE_LANDMARKER_MODEL=/path/to/pose_landmarker_full.task
+```
+
+## Output structure
+
+`FullVisualAnalysis` includes:
+
+- `face_3d_metrics`
+- `body_geometry_canonical`
+- `proportions`
+- `curve_metrics_33`
+- `body_dna`
+- `identity_lock_face`
+- `validation`
+- `markdown_report`
+- `status`
+
+The Markdown report keeps the required professional structure:
+
+1. Core Linear Curve Metrics (10)
+2. Depth & Projection Metrics (8)
+3. Angle & Curvature Metrics (8)
+4. Ratio & Shape Index Metrics (7)
+5. Body DNA
+6. Signature Details
+7. Enhanced Identity Lock Block
+
+## Notes
+
+For real image-based measurement quality, provide a clear full-body image and a known height when possible. The analyzer prefers MediaPipe world landmarks, then falls back to height-calibrated 2D pose landmarks, 2D visual cues, segmentation metadata, and height calibration to generate repeatable centimeter outputs for new subjects. Runtime dependency failures are surfaced as actionable errors that name the missing system library.
