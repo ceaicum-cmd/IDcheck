@@ -19,12 +19,29 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 
 # Virtual environments
 venv/
 ENV/
 env/
 .venv/
+
+# Build outputs and generated artifacts
+*.zip
+*.tar.gz
+*.whl
+artifacts/
+outputs/
+reports/
+analysis.json
+analysis.md
+report.json
+report.md
 
 # IDE
 .idea/
@@ -36,7 +53,5 @@ env/
 .DS_Store
 Thumbs.db
 
-# Project specific
-artifacts/
-*.log
+# Local secrets / environment
 .env
